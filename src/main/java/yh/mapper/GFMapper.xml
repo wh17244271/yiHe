@@ -1,5 +1,54 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
-<mapper namespace="yh.dao.IndexDao">
+<mapper namespace="yh.dao.GFDao">
 
+    <!--    获取指定测点多个时间段的一个指标数据-->
+    <select id="getManyIndexAndMpDateData" resultType="java.lang.String">
+        SELECT VAL as val from dc_meta_raw_data_gf_modbus
+        WHERE
+        dist_code = '3702' AND gw_sn = '1'
+        <if test="dataTimes !=null">
+            and DATA_TIME in
+            <foreach collection="dataTimes" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        AND cons_no =#{consNo}
+        AND mp_no = #{mpNo}
+        AND IND_B_NO = #{indexNo}
+        AND DATA_DATE = DATE_FORMAT( #{date},'%Y-%m-%d')
+        ORDER BY DATA_TIME
+    </select>
+
+    <!--    获取月累计发电量-->
+    <select id="getGenerationCapacityByMonth" resultType="java.lang.String">
+        SELECT sum(val) as val from (
+        SELECT data_date,a.val FROM(
+        SELECT DATA_DATE,val from dc_meta_raw_data_gf_modbus
+        WHERE
+            dist_code = '3702' AND gw_sn = '1'
+        AND cons_no = #{consNo}
+        AND mp_no =#{mpNo}
+        AND IND_B_NO = #{indexNo}
+        AND DATA_DATE like   CONCAT(#{date},'%')
+        ORDER BY data_time desc
+        limit 10000000000
+        )a
+        GROUP BY a.DATA_DATE
+        ORDER BY a.DATA_DATE
+        ) month_data
+    </select>
+
+    <!--    获取指定日期最新一个时间段的指标测点数据-->
+    <select id="getLastData" resultType="java.lang.String">
+        SELECT VAL as val from dc_meta_raw_data_gf_modbus
+        WHERE
+            dist_code = '3702' AND gw_sn = '1'
+        AND cons_no = #{consNo}
+        AND mp_no = #{mpNo}
+        AND IND_B_NO = #{indexNo}
+        AND DATA_DATE = #{date}
+        ORDER BY DATA_TIME desc
+        limit 1
+    </select>
 </mapper>
