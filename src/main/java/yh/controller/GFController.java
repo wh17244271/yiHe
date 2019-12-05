@@ -25,6 +25,79 @@ public class GFController {
     private GFService gFService;
 
     /**
+     * 获取
+     发电效率/实时功率
+     运行状况
+     * @param consNo
+     * @return
+     */
+    @ResponseBody
+    @RequestMapping( "/getFDXLAndSSXL" )
+    public JSONObject getFDXLAndSSXL(String consNo) {
+        JSONObject result = new JSONObject();
+        if (StringUtils.isEmpty(consNo) ) {
+            result.put("state", 500);
+            return result;
+        }
+        result.put("state", 200);
+        String date = LocalDate.now().format(TimeType.defaultDateFormatter);
+        String FDXL = gFService.getLastData(consNo, "1", "12", date);
+        String ssgl = gFService.getLastData(consNo, "1", "14", date);
+        result.put("data",new JSONArray(){{
+            this.add(new JSONObject(){{
+                this.put("FDXLssgl",new JSONArray(){{
+                    this.add(new JSONObject(){{
+                        this.put("FDXL",FDXL);
+                        this.put("ssgl",ssgl);
+                    }});
+                }});
+                this.put("YXZK",new JSONArray(){{
+                    this.add(new JSONObject(){{
+                        this.put("YX","8");
+                        this.put("GZ","8");
+                        this.put("GG","8");
+                        this.put("SG","8");
+                        this.put("DZZS","10");
+                    }});
+                }});
+            }});
+        }});
+
+        return result;
+    }
+
+    /**
+     * 获取告警列表
+     * @param consNo
+     * @return
+     */
+    @ResponseBody
+    @RequestMapping( "/getAlarmInfo" )
+    public JSONObject getAlarmInfo(String consNo) {
+        JSONObject result = new JSONObject();
+        if (StringUtils.isEmpty(consNo) ) {
+            result.put("state", 500);
+            return result;
+        }
+
+        result.put("state", 200);
+        result.put("data",new JSONArray(){{
+            this.add(new JSONObject(){{
+                this.put("GJlist",new JSONArray(){{
+                    this.add(new JSONObject(){{
+                        this.put("time","2019.11.11");
+                        this.put("DJ","高");
+                        this.put("GJnenrong","過量放電");
+                        this.put("FSZ","1000");
+                    }});
+                }});
+            }});
+        }});
+        return result;
+
+    }
+
+    /**
      * 获取功率/辐照
      *
      * @param consNo
