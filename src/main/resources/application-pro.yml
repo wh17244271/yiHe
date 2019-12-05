@@ -1,0 +1,22 @@
+server:
+  port: 8885
+  servlet:
+    context-path: /
+
+spring:
+  datasource:
+    dialect: mysql
+    driverClassName: com.mysql.jdbc.Driver
+    url: jdbc:mysql://47.111.191.96:6240/mapp_dev?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&serverTimezone=GMT%2B8
+    username: mapp_nr
+    password: mappsuypower
+
+mybatis:
+  mapper-locations: classpath*:yh/mapper/*.xml
+  #配置模型路径
+  type-aliases-package: yh.entity
+  configuration:
+    #打印sql
+    #    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    #空值也返回
+    call-setters-on-nulls: true

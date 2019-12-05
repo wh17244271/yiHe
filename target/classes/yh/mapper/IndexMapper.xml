@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="yh.dao.IndexDao">
+
+
+    <!--    查找实时功率数据-->
+    <select id="getRealTimePowerData" resultType="java.lang.String">
+        SELECT VAL as val FROM dc_meta_raw_data_hb_modbus
+        WHERE
+            dist_code = '3702' AND gw_sn = '1'
+        AND cons_no = #{consNo}
+        AND mp_no = '3'
+        AND IND_B_NO = '01030004'
+        AND DATA_DATE =  DATE_FORMAT( now(),'%Y-%m-%d')
+
+        ORDER BY DATA_TIME DESC
+        LIMIT 1
+    </select>
+
+    <!--    获取指定测点某一时间段的一个指标数据-->
+    <select id="getOneIndexAndMpDateData" resultType="java.lang.String">
+         SELECT VAL as val FROM dc_meta_raw_data_hb_modbus
+        WHERE
+            dist_code = '3702' AND gw_sn = '1'
+        AND cons_no = #{consNo}
+        AND mp_no =#{mpNo}
+        AND IND_B_NO = #{indexNo}
+        AND DATA_DATE =  DATE_FORMAT( #{date},'%Y-%m-%d')
+        ORDER BY DATA_TIME DESC
+        LIMIT 1
+    </select>
+    <!--    获取指定测点多个时间段的一个指标数据-->
+    <select id="getManyIndexAndMpDateData" resultType="java.lang.String">
+        SELECT VAL as val from dc_meta_raw_data_hb_modbus
+        WHERE
+        dist_code = '3702' AND gw_sn = '1'
+        <if test="dataTimes !=null">
+            and DATA_TIME in
+            <foreach collection="dataTimes" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        AND cons_no =#{consNo}
+        AND mp_no = #{mpNo}
+        AND IND_B_NO = #{indexNo}
+        AND DATA_DATE = DATE_FORMAT( #{date},'%Y-%m-%d')
+        ORDER BY DATA_TIME
+    </select>
+
+    <!--    获取多个天数的最新测点数据-->
+    <select id="getDayNewTimeDataList" resultType="java.lang.String">
+        SELECT a.val FROM(
+        SELECT DATA_DATE,val from dc_meta_raw_data_hb_modbus
+        WHERE
+        dist_code = '3702' AND gw_sn = '1'
+        AND cons_no = #{consNo}
+        AND mp_no = #{mpNo}
+        AND IND_B_NO = #{indexNo}
+        AND DATA_DATE like CONCAT(#{date},'%')
+        <!-- <if test="dates !=null">
+             and DATA_DATE in
+             <foreach collection="dates" item="item" open="(" separator="," close=")">
+                 DATE_FORMAT(  #{item},'%Y-%m-%d')
+             </foreach>
+         </if>-->
+        ORDER BY data_time desc
+        limit 10000000000
+        )a
+        GROUP BY a.DATA_DATE
+        ORDER BY a.DATA_DATE
+    </select>
+
+
+    <!--    获取储能供电占比-->
+    <select id="getCNGDZB" resultType="java.lang.String">
+        SELECT (IFNULL(hb.val,0) /(IFNULL(gf.val,0) + IFNULL(hb.val,0)))val  from
+(
+
+SELECT data_date,a.val FROM(
+SELECT DATA_DATE,val from dc_meta_raw_data_hb_modbus
+WHERE
+	dist_code = '3702' AND gw_sn = '1'
+AND cons_no = #{consNo}
+AND mp_no = '7'
+AND IND_B_NO = '11000003'
+AND DATA_DATE like   CONCAT(#{date},'%')
+ORDER BY data_time desc
+limit 10000000000
+)a
+GROUP BY a.DATA_DATE
+ORDER BY a.DATA_DATE
+
+) hb
+LEFT join
+(
+
+SELECT data_date,a.val FROM(
+SELECT DATA_DATE,val from dc_meta_raw_data_gf_modbus
+WHERE
+	dist_code = '3702' AND gw_sn = '1'
+AND cons_no = #{consNo}
+AND mp_no = '1'
+AND IND_B_NO = '16'
+AND DATA_DATE like   CONCAT(#{date},'%')
+ORDER BY data_time desc
+limit 10000000000
+)a
+GROUP BY a.DATA_DATE
+ORDER BY a.DATA_DATE
+)gf
+ON hb.data_date = gf.data_date
+
+    </select>
+
+
+    <!--
+     &lt;!&ndash;    获取指标指定日的实时数据&ndash;&gt;
+     <select id="getIndexTimeSlot" resultType="yh.entity.IndexAll">
+         SELECT
+         val as indexVal,
+         DATA_TIME as dataTime
+         FROM
+         dc_meta_raw_data_hb_modbus
+         WHERE
+         dist_code = '3702' and gw_sn = '1'
+         AND cons_no =#{consNo}
+         AND mp_no = #{mpNo}
+         AND IND_B_NO =#{indexNo}
+         AND DATA_DATE = #{dataDate}
+         <if test="dataTimes !=null">
+             and DATA_TIME in
+             <foreach collection="dataTimes" item="item" open="(" separator="," close=")">
+                 #{item}
+             </foreach>
+         </if>
+     </select>
+
+
+     <resultMap id="indexGroupByMpNo" type="yh.entity.IndexGroupByMpNo">
+         <collection property="indexs" ofType="yh.entity.Index"
+                     select="getIndexList" column="{consNo=consNo,dataTime=dataTime,deviceNo=deviceNo}"/>
+     </resultMap>
+     <select id="getIndexGroupByMpNoList" resultMap="indexGroupByMpNo">
+         SELECT
+         MAX(DATA_TIME) as dataTime,
+         MP_NO as deviceNo,
+         DEVICE_NAME as deviceName,
+         #{consNo} as consNo
+         FROM dc_meta_raw_data_hb_modbus
+         WHERE
+          cons_no = #{consNo} and dist_code = '3702' and gw_sn = '1'
+         GROUP BY MP_NO,DEVICE_NAME
+     </select>
+     <select id="getIndexList" resultType="yh.entity.Index">
+             SELECT
+              IND_B_NO as indexNo,
+              IND_B_NAME as indexName,
+              VAL as indexUnit,
+              IND_B_UNIT as indexVal
+              from
+             dc_meta_raw_data_hb_modbus
+             WHERE
+              cons_no = #{consNo} and dist_code = '3702' and gw_sn = '1'
+             AND DATA_TIME = DATE_FORMAT( #{dataTime},'%Y-%m-%d %H:%i:%s')
+             and mp_no = #{deviceNo}
+     </select>
+ -->
+
+    <!--
+    <sql id="indexBaseClo">
+        CONS_NO as consNo,
+        MP_NO as mpNo,
+        IND_B_NO as indexNo,
+        VAL as indexVal,
+        IND_B_NAME as indexName,
+        IND_B_UNIT as indexUnit,
+        DEVICE_NAME as deviceName,
+        DATA_TIME as dataTime,
+        DATA_DATE as dataDate
+    </sql>
+    <select id="getIndexList" resultType="yh.entity.IndexAll">
+        select
+        <include refid="indexBaseClo"/>
+        from dc_meta_raw_data_hb_modbus
+        <where>
+           and dist_code = '3702' and gw_sn = '1'
+            <if test="consNo !=null and consNo!= '' ">
+                and cons_no = #{consNo}
+            </if>
+            <if test="mpNo !=null and mpNo!= '' ">
+                and MP_NO = #{mpNo}
+            </if>
+            <if test="indexNo !=null and indexNo!= '' ">
+                and IND_B_NO = #{indexNo}
+            </if>
+            <if test="dataTime !=null  ">
+                and DATA_TIME = #{dataTime}
+            </if>
+            <if test="dataDate !=null  ">
+                and DATA_DATE = #{dataDate}
+            </if>
+
+        </where>
+
+    </select>-->
+</mapper>
