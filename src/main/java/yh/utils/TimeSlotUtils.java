@@ -63,15 +63,4 @@ public class TimeSlotUtils {
     }
 
 
-    public static void main(String[] args) {
-        String date="2019-11-26";
-        LocalDate parse = LocalDate.parse(date, TimeType.defaultDateFormatter);
-        List<String> localDateTimeList = TimeSlotUtils.getLocalDateTimeListByDay(parse, 4);
-
-//        List<LocalDateTime> localDateTimeList = getLocalDateTimeListByMinute(LocalDateTime.now(), "");
-        System.out.println(localDateTimeList.size());
-        for(String localDateTime:localDateTimeList){
-            System.out.println(localDateTime.toString());
-        }
-    }
 }

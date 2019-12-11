@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="yh.dao.EnergyStorageDao">
+
+    <!--    获取当天所有点时间数据-->
+    <select id="getTimeValByDate" resultType="yh.entity.DataTime">
+        SELECT
+            DATA_TIME AS dataTime,
+            VAL AS val
+        FROM
+            dc_meta_raw_data_hb_modbus
+        WHERE
+            dist_code = '3702'
+        AND gw_sn = '1'
+       AND cons_no = #{consNo}
+        AND mp_no = #{mpNo}
+        AND IND_B_NO = #{indexNo}
+        AND DATA_DATE = DATE_FORMAT(#{date}, '%Y-%m-%d')
+        ORDER BY
+            DATA_TIME
+    </select>
+    <!--    获取指定天数的指标最新数据-->
+    <select id="getdateValByDates" resultType="yh.entity.DataDate">
+        SELECT a.DATA_DATE dataDate,a.val FROM(
+        SELECT DATA_DATE,val from dc_meta_raw_data_hb_modbus
+        WHERE
+        dist_code = '3702' AND gw_sn = '1'
+        AND cons_no = #{consNo}
+        AND mp_no = #{mpNo}
+        AND IND_B_NO = #{indexNo}
+        <if test="dates !=null">
+            and DATA_DATE in
+            <foreach collection="dates" item="item" open="(" separator="," close=")">
+                DATE_FORMAT( #{item},'%Y-%m-%d')
+            </foreach>
+        </if>
+        ORDER BY data_time desc
+        limit 10000000000
+        )a
+        GROUP BY a.DATA_DATE
+        ORDER BY a.DATA_DATE
+    </select>
+    <!--    获取指定天数总和-->
+    <select id="getSumValByDates" resultType="java.lang.String">
+        SELECT SUM(val) from (
+        SELECT a.DATA_DATE dataDate,a.val FROM(
+        SELECT DATA_DATE,val from dc_meta_raw_data_hb_modbus
+        WHERE
+        dist_code = '3702' AND gw_sn = '1'
+        AND cons_no = #{consNo}
+        AND mp_no = #{mpNo}
+        AND IND_B_NO = #{indexNo}
+        <if test="dates !=null">
+            and DATA_DATE in
+            <foreach collection="dates" item="item" open="(" separator="," close=")">
+                DATE_FORMAT( #{item},'%Y-%m-%d')
+            </foreach>
+        </if>
+        ORDER BY data_time desc
+        limit 10000000000
+        )a
+        GROUP BY a.DATA_DATE
+        ORDER BY a.DATA_DATE
+        )b
+    </select>
+
+</mapper>
